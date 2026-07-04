@@ -1,0 +1,82 @@
+# pc1 — digital workplace + local mini-internet on one docker network.
+# The desktop reaches the office apps by their service names:
+#   http://mail:8025 (Mailpit), http://wordpress (CMS), http://intranet (static)
+# Humans watch the desktop live at http://127.0.0.1:26080/vnc.html
+services:
+  desktop:
+    build: ./desktop
+    image: pc1-desktop:local
+    environment:
+      NODE_NAME: pc1
+    ports:
+      - "${PC1_NOVNC_PORT:-26080}:6080"
+      - "${PC1_NODE_PORT:-28765}:8765"
+    shm_size: 1gb
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8765/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      - mail
+      - wordpress
+      - intranet
+
+  mail:
+    image: axllent/mailpit:latest
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    ports:
+      - "${PC1_SMTP_PORT:-21025}:1025"
+      - "${PC1_MAILUI_PORT:-28025}:8025"
+
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - db_data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:php8.3-apache
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    ports:
+      - "${PC1_WP_PORT:-28080}:80"
+    volumes:
+      - wp_data:/var/www/html
+    depends_on:
+      - db
+
+  wpcli:
+    image: wordpress:cli-php8.3
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp_data:/var/www/html
+    depends_on:
+      - wordpress
+      - db
+    entrypoint: ["bash", "-c", "for i in $$(seq 1 60); do wp core is-installed --path=/var/www/html 2>/dev/null && exit 0; wp core install --path=/var/www/html --url=http://wordpress --title='PC1 Intranet Blog' --admin_user=admin --admin_password=urirun-e2e-Pass1 --admin_email=admin@example.com --skip-email 2>/dev/null && exit 0; sleep 3; done; echo 'wp install failed'; exit 1"]
+
+  intranet:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./fixtures/intranet:/usr/share/nginx/html:ro
+    ports:
+      - "${PC1_INTRANET_PORT:-28090}:80"
+
+volumes:
+  db_data:
+  wp_data:
