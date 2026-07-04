@@ -1,5 +1,32 @@
 # pc1 — digital workplace E2E lab for urirun
 
+**net-user-pl** — wirtualny internet: lokalny CA, proxy Caddy z prawdziwym TLS dla wirtualnych domen, DNS (aliasy Dockera), wirtualny bank mbank.pl z logowaniem kodem SMS, portal login.gov.pl (Profil Zaufany stub), bramka SMS (wirtualny operator) i szyna zdarzeń URI — jedno źródło prawdy zapisujące każdą akcję jako adres URI.
+
+**mobile-user-pl** — wirtualny telefon Jana: aplikacja SMS (phone.jan.pl) czytająca skrzynkę operatora; człowiek odczytuje tu kod, a automat czyta tę samą skrzynkę przez sieć.
+
+**pc-user-pl** — komputer Jana Kowalskiego: rozszerza desktop pc1 o zaufanie do CA (systemowe + NSS Chromium) i wpięcie w sieć netpl, więc Chromium widzi ważny HTTPS na mbank.pl jak w prawdziwym internecie. Sterowany wyłącznie przez mesh urirun (kvm://, app://).
+
+**pc1** — orkiestracja: trzy powyższe jako git submodules + compose.twin.yml, cele make twin-* i flagowy test.
+
+Flagowy scenariusz — działa (2 passed, odtworzone z publikacji)
+
+Jan loguje się do banku kodem SMS, cały łańcuch przez mesh, z zamkniętą pętlą OCR i dowodami w zrzutach. Zweryfikowany ślad przyczynowy URI:
+```
+net://twin/session/command/start
+bank://mbank.pl/login/query/form
+pc://jan-kowalski/browser/command/navigate      ← Chromium otwiera mbank.pl (ważny TLS)
+pc://jan-kowalski/bank/command/submit-login     ← wpisuje login/hasło
+bank://mbank.pl/otp/command/request             ← bank żąda kodu
+sms://+48500100200/inbox/command/deliver        ← SMS trafia na telefon
+phone://jan/sms/query/read                      ← automat czyta kod z telefonu
+pc://jan-kowalski/bank/command/submit-otp        ← wpisuje kod w banku
+bank://mbank.pl/session/command/login-success
+bank://mbank.pl/dashboard/query/view            ← "PULPIT BANKOWY, Jan Kowalski, Saldo 4 812,37 PLN"
+```
+Dokładnie to, o co prosiłeś: kod, który normalnie odczytałby z telefonu przez SMS, jest przez wirtualną sieć pobierany z wirtualnego telefonu i wpisywany do wirtualnego banku — a każda operacja (sieć, komputer, telefon, artefakty) jest adresem URI, więc cały epizod jest odtwarzalny i pozwala testować dowolną funkcjonalność urirun.
+
+
+
 A self-contained "human at a desk" test environment: one Docker network hosts a
 virtual desktop and a local mini-internet of real office applications. Test
 scenarios automate daily work the way a person does it — open the browser, read
