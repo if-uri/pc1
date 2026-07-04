@@ -24,4 +24,26 @@ test: ## Run the daily-work E2E journeys (composes up itself)
 watch: ## Print the live-view URL
 	@echo "noVNC: http://127.0.0.1:26080/vnc.html  |  Mailpit: http://127.0.0.1:28025  |  WP: http://127.0.0.1:28080"
 
-.PHONY: help venv up down test watch
+# --- digital twin (net-user-pl + mobile-user-pl + pc-user-pl submodules) ---
+
+twin-init: ## Fetch submodules + build the CA and the Jan Kowalski desktop image
+	git submodule update --init --recursive
+	bash net-user-pl/ca/gen.sh
+	-docker network create netpl
+	docker build -t pc1-desktop:local desktop
+	DOCKER_BUILDKIT=0 docker build -t pc-user-pl-desktop:local pc-user-pl/desktop
+
+twin-up: ## Start the whole isolated digital world (net + phone + Jan's PC)
+	-docker network create netpl
+	docker compose -f compose.twin.yml up -d
+
+twin-test: ## Run the flagship bank SMS-code login journey through the twin
+	URIRUN_TWIN_E2E=1 $(VENV)/bin/python -m pytest tests/test_twin_bank_sms.py -v
+
+twin-events: ## Print the URI event trace of the last twin episode
+	@curl -s http://127.0.0.1:28800/events | python3 -m json.tool
+
+twin-down: ## Stop and wipe the twin
+	docker compose -f compose.twin.yml down -v
+
+.PHONY: help venv up down test watch twin-init twin-up twin-test twin-events twin-down

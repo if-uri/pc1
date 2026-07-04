@@ -40,6 +40,50 @@ make down   # tear down + wipe volumes
 
 `PC1_KEEP_UP=1 make test` leaves the workplace running afterwards.
 
+## Digital twin: a full isolated internet + computer + phone
+
+Beyond the office stack above, pc1 orchestrates a complete **isolated digital
+twin** — a virtual internet, an average citizen's computer, and his phone — so
+urirun automations run as if in production, including SMS second factors. The
+three worlds are git submodules:
+
+- [net-user-pl](https://github.com/if-uri/net-user-pl) — virtual internet: local CA, TLS proxy, DNS, bank (`mbank.pl`), gov (`login.gov.pl`), SMS carrier, URI event bus.
+- [pc-user-pl](https://github.com/if-uri/pc-user-pl) — Jan Kowalski's computer (desktop + urirun kvm node, CA-trusted).
+- [mobile-user-pl](https://github.com/if-uri/mobile-user-pl) — Jan's phone (SMS app, `phone.jan.pl`).
+
+```bash
+make twin-init    # submodules + CA + desktop images
+make twin-up      # bring the whole world up
+make twin-test    # Jan logs into his bank with an SMS code, end to end
+make twin-events  # print the URI causal trace of the episode
+```
+
+**The flagship journey** (`tests/test_twin_bank_sms.py`): Jan opens `https://mbank.pl`
+in Chromium (valid HTTPS via the local CA), types his credentials, the bank
+sends a one-time code over the virtual carrier, the automat reads it from Jan's
+phone inbox — exactly the code a person types off their handset — enters it, and
+reaches the dashboard. Every step is a URI event on the bus:
+
+```
+net://twin/session/command/start
+bank://mbank.pl/login/query/form
+pc://jan-kowalski/browser/command/navigate
+pc://jan-kowalski/bank/command/submit-login
+bank://mbank.pl/otp/command/request
+sms://+48500100200/inbox/command/deliver
+phone://jan/sms/query/read
+pc://jan-kowalski/bank/command/submit-otp
+bank://mbank.pl/session/command/login-success
+bank://mbank.pl/dashboard/query/view
+```
+
+so the whole real-life episode is replayable and every urirun feature can be
+exercised against a faithful causal log. Watch it live at
+`http://127.0.0.1:26080/vnc.html`.
+
+**Safety:** the twin's root CA is trusted only inside the desktop container,
+never on your host — see net-user-pl's README.
+
 ## Notes
 
 - Wheels in `desktop/vendor/` are vendored because the urirun dependency chain

@@ -1,0 +1,15 @@
+# pc1 twin — orchestrates the whole isolated digital world in one command:
+#   net-user-pl    the virtual internet (DNS, CA, TLS proxy, bank, gov, SMS, eventbus)
+#   mobile-user-pl Jan's phone (SMS app)
+#   pc-user-pl     Jan Kowalski's computer (desktop + urirun kvm node), CA-trusted
+#
+# Prereqs:
+#   bash ../net-user-pl/ca/gen.sh                        # once, generates the CA
+#   docker build -t pc1-desktop:local pc1/desktop        # base desktop image
+#   (pc-user-pl desktop is built FROM pc1-desktop:local)
+#
+# Watch Jan work live: http://127.0.0.1:26080/vnc.html
+include:
+  - ./net-user-pl/compose.net.yml
+  - ./mobile-user-pl/compose.mobile.yml
+  - ./pc-user-pl/compose.pc.yml
