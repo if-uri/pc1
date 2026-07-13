@@ -1,0 +1,100 @@
+# Multi-node buyer/customer scenario.
+# pc2 is a second parametrized instance of pc-user-pl, not a separate repo.
+include:
+  - ./net-user-pl/compose.net.yml
+
+services:
+  business-portal:
+    image: python:3.13-slim
+    working_dir: /app
+    volumes:
+      - ./fixtures/business-portal:/app:ro
+      - scenario_business_data:/data
+    command: python app.py
+    networks: [netpl]
+    ports:
+      - "${SCENARIO_PORTAL_PORT:-28910}:8010"
+    depends_on:
+      - eventbus
+
+  human-connector:
+    image: python:3.13-slim
+    working_dir: /src
+    volumes:
+      - ../human-connector:/src:ro
+      - scenario_human_data:/data
+    environment:
+      URIRUN_HUMAN_NODE: pc2
+      URIRUN_HUMAN_PORT: "8797"
+      URIRUN_HUMAN_STORE: /data/human.sqlite
+    command: python -m urirun_connector_human.surface --host 0.0.0.0 --port 8797 --node pc2
+    networks: [netpl]
+    ports:
+      - "${SCENARIO_HUMAN_PORT:-28797}:8797"
+
+  pc1:
+    build: ./pc-user-pl/desktop
+    image: pc-user-pl-desktop:local
+    init: true
+    hostname: "${PC1_HOSTNAME:-pc1}"
+    environment:
+      NODE_NAME: "${PC1_NODE_ID:-pc1}"
+      NODE_ID: "${PC1_NODE_ID:-pc1}"
+      TWIN_USER: "${PC1_TWIN_USER:-customer}"
+      TWIN_ROLE: "${PC1_TWIN_ROLE:-ifuri-customer}"
+      PROFILE_DIR: "${PC1_PROFILE_DIR:-/profiles/pc1}"
+    volumes:
+      - ./net-user-pl/ca/out:/opt/ca:ro
+      - pc1_profile:/profiles/pc1
+    ports:
+      - "${PC1_NOVNC_PORT:-26080}:6080"
+      - "${PC1_NODE_PORT:-28765}:8765"
+    shm_size: 1gb
+    networks: [netpl]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8765/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      - business-portal
+      - human-connector
+
+  pc2:
+    build: ./pc-user-pl/desktop
+    image: pc-user-pl-desktop:local
+    init: true
+    hostname: "${PC2_HOSTNAME:-pc2}"
+    environment:
+      NODE_NAME: "${PC2_NODE_ID:-pc2}"
+      NODE_ID: "${PC2_NODE_ID:-pc2}"
+      TWIN_USER: "${PC2_TWIN_USER:-buyer}"
+      TWIN_ROLE: "${PC2_TWIN_ROLE:-ifuri-buyer}"
+      PROFILE_DIR: "${PC2_PROFILE_DIR:-/profiles/pc2}"
+    volumes:
+      - ./net-user-pl/ca/out:/opt/ca:ro
+      - pc2_profile:/profiles/pc2
+    ports:
+      - "${PC2_NOVNC_PORT:-26081}:6080"
+      - "${PC2_NODE_PORT:-28766}:8765"
+    shm_size: 1gb
+    networks: [netpl]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8765/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      - business-portal
+      - human-connector
+
+networks:
+  netpl:
+    external: true
+    name: netpl
+
+volumes:
+  scenario_business_data:
+  scenario_human_data:
+  pc1_profile:
+  pc2_profile:

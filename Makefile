@@ -46,4 +46,34 @@ twin-events: ## Print the URI event trace of the last twin episode
 twin-down: ## Stop and wipe the twin
 	docker compose -f compose.twin.yml down -v
 
-.PHONY: help venv up down test watch twin-init twin-up twin-test twin-events twin-down
+scenario-init: ## Build CA/base images for the multi-node customer/buyer scenario
+	git submodule update --init --recursive
+	bash net-user-pl/ca/gen.sh
+	-docker network create netpl
+	docker build -t pc1-desktop:local desktop
+	DOCKER_BUILDKIT=0 docker build -t pc-user-pl-desktop:local pc-user-pl/desktop
+
+scenario-up: ## Start net-user-pl, business portal, human connector, pc1 and pc2
+	-docker network create netpl
+	docker compose -f compose.scenario.yml up -d --build
+
+scenario-test: ## Run the multi-node pc1/pc2 scenario suite and write reports
+	PYTHONPATH=$(CURDIR) $(VENV)/bin/python -m pytest tests/test_multinode_scenarios.py -v
+	PYTHONPATH=$(CURDIR) $(VENV)/bin/python -m scenarios.multinode.runner --out reports/scenario
+
+scenario-events: ## Print the last multi-node URI event trace
+	@python3 -m json.tool reports/scenario/events.json
+
+scenario-report: ## Print the Markdown report path
+	@echo "report: reports/scenario/summary.md"
+	@echo "junit:  reports/scenario/junit.xml"
+
+scenario-down: ## Stop and wipe the multi-node scenario environment
+	docker compose -f compose.scenario.yml down -v --remove-orphans
+
+scenario-ci: ## Build, test, report and always clean the multi-node scenario
+	$(MAKE) scenario-init
+	$(MAKE) scenario-up
+	@status=0; $(MAKE) scenario-test || status=$$?; $(MAKE) scenario-report || true; $(MAKE) scenario-down || true; exit $$status
+
+.PHONY: help venv up down test watch twin-init twin-up twin-test twin-events twin-down scenario-init scenario-up scenario-test scenario-events scenario-report scenario-down scenario-ci
