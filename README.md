@@ -111,6 +111,60 @@ exercised against a faithful causal log. Watch it live at
 **Safety:** the twin's root CA is trusted only inside the desktop container,
 never on your host — see net-user-pl's README.
 
+## Multi-node customer/buyer scenario
+
+`pc2` is not a separate repository. It is a second parametrized `pc-user-pl`
+container with its own `NODE_ID`, noVNC port, node port and browser profile.
+`ifuri-customer` and `ifuri-buyer` are scenario roles:
+
+```
+net-user-pl
+|-- eventbus
+|-- local DNS through Docker aliases
+|-- local HTTPS/TLS through the generated CA and Caddy proxy
+|-- business-portal mock
+|-- required local mocks
+|
+|-- pc1  NODE_ID=pc1  TWIN_ROLE=ifuri-customer  noVNC=:26080  node=:28765
+|   |-- browser
+|   |-- urirun node
+|   `-- kvm:// and app:// connectors
+|
+|-- pc2  NODE_ID=pc2  TWIN_ROLE=ifuri-buyer     noVNC=:26081  node=:28766
+|   |-- browser / office apps
+|   |-- urirun node
+|   `-- kvm:// and app:// connectors
+|
+`-- human-connector  human://pc2/task/command/request|resolve|cancel
+```
+
+Run the operator flow:
+
+```bash
+# expects sibling checkouts: ../human-connector plus pc1 submodules
+make scenario-init
+make scenario-up
+make scenario-test
+make scenario-events
+make scenario-report
+make scenario-down
+
+# one command, with cleanup even after failure
+make scenario-ci
+```
+
+The fast pytest harness covers pc1 -> pc2 routing, customer -> buyer approval,
+human `done` / `declined` / `cancel`, retry after unavailable `pc2`,
+idempotency, invalid URI/payload/node/connector cases and secret redaction.
+Reports are written to `reports/scenario/` as `summary.md`, `junit.xml`,
+`execution-manifest.json`, `events.json` and evidence screenshots/DOM JSON.
+
+Standard GitHub-hosted Ubuntu can run the host harness and Docker-only services.
+Real KVM/Windows, USB devices, Android phones, GPU workloads and physical
+desktop access still require a self-hosted runner. noVNC sessions are available
+at `http://127.0.0.1:26080/vnc.html` for `pc1` and
+`http://127.0.0.1:26081/vnc.html` for `pc2`.
+
 ## Notes
 
 - Wheels in `desktop/vendor/` are vendored because the urirun dependency chain
