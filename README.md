@@ -135,13 +135,13 @@ net-user-pl
 |   |-- urirun node
 |   `-- kvm:// and app:// connectors
 |
-`-- human-connector  human://pc2/task/command/request|resolve|cancel
+`-- urirun-connector-human  human://pc2/task/command/request|resolve|cancel
 ```
 
 Run the operator flow:
 
 ```bash
-# expects sibling checkouts: ../human-connector plus pc1 submodules
+# expects the connector workspace at ../../urirun-connectors/urirun-connector-human
 make scenario-init
 make scenario-up
 make scenario-test

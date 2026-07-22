@@ -21,7 +21,7 @@ services:
     image: python:3.13-slim
     working_dir: /src
     volumes:
-      - ../human-connector:/src:ro
+      - ../../urirun-connectors/urirun-connector-human:/src:ro
       - scenario_human_data:/data
     environment:
       URIRUN_HUMAN_NODE: pc2
