@@ -1,9 +1,9 @@
 [submodule "net-user-pl"]
 	path = net-user-pl
-	url = https://github.com/if-uri/net-user-pl
+	url = https://github.com/digitaltwin-run/net-user-pl
 [submodule "mobile-user-pl"]
 	path = mobile-user-pl
-	url = https://github.com/if-uri/mobile-user-pl
+	url = https://github.com/digitaltwin-run/mobile-user-pl
 [submodule "pc-user-pl"]
 	path = pc-user-pl
-	url = https://github.com/if-uri/pc-user-pl
+	url = https://github.com/digitaltwin-run/pc-user-pl

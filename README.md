@@ -74,9 +74,9 @@ twin** — a virtual internet, an average citizen's computer, and his phone — 
 urirun automations run as if in production, including SMS second factors. The
 three worlds are git submodules:
 
-- [net-user-pl](https://github.com/if-uri/net-user-pl) — virtual internet: local CA, TLS proxy, DNS, bank (`mbank.pl`), gov (`login.gov.pl`), SMS carrier, URI event bus.
-- [pc-user-pl](https://github.com/if-uri/pc-user-pl) — Jan Kowalski's computer (desktop + urirun kvm node, CA-trusted).
-- [mobile-user-pl](https://github.com/if-uri/mobile-user-pl) — Jan's phone (SMS app, `phone.jan.pl`).
+- [net-user-pl](https://github.com/digitaltwin-run/net-user-pl) — virtual internet: local CA, TLS proxy, DNS, bank (`mbank.pl`), gov (`login.gov.pl`), SMS carrier, URI event bus.
+- [pc-user-pl](https://github.com/digitaltwin-run/pc-user-pl) — Jan Kowalski's computer (desktop + urirun kvm node, CA-trusted).
+- [mobile-user-pl](https://github.com/digitaltwin-run/mobile-user-pl) — Jan's phone (SMS app, `phone.jan.pl`).
 
 ```bash
 make twin-init    # submodules + CA + desktop images
